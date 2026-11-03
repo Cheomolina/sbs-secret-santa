@@ -77,3 +77,6 @@ td.actions { text-align: right; white-space: nowrap; }
   .who span { display: none; }
   .row.wrap { align-items: stretch; flex-direction: column; }
 }
+
+.person-wrap { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+.person-wrap .person { flex: 1; }
