@@ -138,8 +138,9 @@ begin
 end $$;
 
 -- Event test: runs the draw algorithm many times in memory on the real participant list and
--- verifies it. Writes nothing and returns no names, so the admin learns nothing about the real draw.
-create function public.test_draw() returns jsonb
+-- verifies it, and returns ONE sample draw so the admin can see what a draw looks like.
+-- Writes nothing. The sample uses fresh randomness, so it says nothing about the real draw.
+create or replace function public.test_draw() returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
   ids uuid[]; shuffled uuid[]; n int; run int;
@@ -148,6 +149,7 @@ declare
   fail_self int := 0; fail_once int := 0; fail_swap int := 0;
   checks jsonb := '[]'; warnings jsonb := '[]';
   st text; edate timestamptz; no_hints int; no_photo int;
+  sample jsonb := '[]';
 begin
   if not public.is_admin() then raise exception 'Admins only'; end if;
 
@@ -177,6 +179,14 @@ begin
     checks := checks || jsonb_build_object('name', 'Nobody draws themselves (' || runs || ' simulated draws)', 'pass', fail_self = 0);
     checks := checks || jsonb_build_object('name', 'Everyone gives exactly once and receives exactly once', 'pass', fail_once = 0);
     checks := checks || jsonb_build_object('name', 'No two people draw each other', 'pass', fail_swap = 0);
+
+    -- One extra, independent draw to show as a sample (never stored).
+    shuffled := public._make_cycle(ids);
+    select jsonb_agg(jsonb_build_object('giver', g.username, 'receiver', r.username) order by g.username)
+      into sample
+      from generate_series(1, n) i
+      join public.profiles g on g.id = shuffled[i]
+      join public.profiles r on r.id = shuffled[i % n + 1];
   end if;
 
   checks := checks || jsonb_build_object('name', 'Event date is set', 'pass', edate is not null);
@@ -189,6 +199,7 @@ begin
   return jsonb_build_object(
     'ok', not exists (select 1 from jsonb_array_elements(checks) c where (c->>'pass')::boolean = false),
     'participants', n,
+    'sample', sample,
     'checks', checks,
     'warnings', warnings
   );

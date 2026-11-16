@@ -68,7 +68,20 @@ function EventPanel({ event, reload }) {
           <h4>{test.ok ? '✅ All checks passed' : '⚠️ Some checks failed'}</h4>
           <ul>{test.checks.map((c) => <li key={c.name}>{c.pass ? '✔' : '✘'} {c.name}</li>)}</ul>
           {test.warnings.map((w) => <p key={w} className="muted">⚠ {w}</p>)}
-          <p className="muted">The test writes nothing and reveals no names.</p>
+          {test.sample?.length > 0 && (
+            <>
+              <h4>Sample draw (test only)</h4>
+              <table>
+                <thead><tr><th>Giver</th><th></th><th>Receiver</th></tr></thead>
+                <tbody>
+                  {test.sample.map((p) => (
+                    <tr key={p.giver}><td>{p.giver}</td><td>→</td><td>{p.receiver}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+          <p className="muted">This is only a test: nothing is saved, and the real draw will be completely different. Run it again for a new sample.</p>
         </div>
       )}
     </section>
