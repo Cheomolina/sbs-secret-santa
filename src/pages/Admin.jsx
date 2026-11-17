@@ -112,10 +112,12 @@ export default function Admin() {
   const [msg, setMsg] = useState('');
 
   const load = async () => {
-    const [{ data: evs }, { data: us }] = await Promise.all([
+    const [{ data: evs, error: e1 }, { data: us, error: e2 }] = await Promise.all([
       supabase.from('events').select('*').order('id', { ascending: false }),
       supabase.from('profiles').select('id, username, nickname, role, active, created_at'),
     ]);
+    const failure = e1 || e2;
+    setMsg(failure ? `Error loading data: ${failure.message}. Run the latest supabase/schema.sql in the SQL Editor.` : '');
     const current = evs?.find((e) => e.status !== 'archived');
     setEvent(current);
     setHistory(evs?.filter((e) => e.status === 'archived') ?? []);

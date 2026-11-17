@@ -14,10 +14,11 @@ export default function Participants() {
   const [msg, setMsg] = useState('');
 
   const load = async () => {
-    const [{ data }, { data: ev }] = await Promise.all([
+    const [{ data, error }, { data: ev }] = await Promise.all([
       supabase.from('profiles').select('id, username, nickname, photo_url, role, active, hints(id)'),
       supabase.from('events').select('status').neq('status', 'archived').single(),
     ]);
+    if (error) setMsg(`Error loading participants: ${error.message}. Run the latest supabase/schema.sql in the SQL Editor.`);
     setPeople((data ?? []).sort(byName));
     setStarted(ev?.status === 'started');
   };
