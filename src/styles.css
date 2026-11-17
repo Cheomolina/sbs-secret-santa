@@ -80,3 +80,17 @@ td.actions { text-align: right; white-space: nowrap; }
 
 .person-wrap { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
 .person-wrap .person { flex: 1; }
+
+.small { font-size: .85rem; }
+.pre { white-space: pre-wrap; }
+.pill.grey { background: #8a7e72; }
+.off { opacity: .55; }
+.banner.warn { background: #c98a12; }
+.subcard { background: var(--cream); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 12px 0; }
+.summary { display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: center; margin: 10px 0 16px; font-weight: 600; }
+.detail-row { display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.detail-row:last-of-type { border-bottom: 0; }
+.detail-icon { font-size: 1.5rem; }
+label.check { flex-direction: row; align-items: center; gap: 8px; }
+label.check input { width: auto; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 14px 0; }

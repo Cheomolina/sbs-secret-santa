@@ -4,6 +4,7 @@ import { configured } from './lib/supabase';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Home from './pages/Home';
+import EventDetails from './pages/EventDetails';
 import Participants from './pages/Participants';
 import Participant from './pages/Participant';
 import MyProfile from './pages/MyProfile';
@@ -22,6 +23,7 @@ export default function App() {
     <Layout>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/event" element={<EventDetails />} />
         <Route path="/participants" element={<Participants />} />
         <Route path="/participants/:id" element={<Participant />} />
         <Route path="/me" element={<MyProfile />} />

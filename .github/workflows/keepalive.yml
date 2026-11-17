@@ -1,0 +1,24 @@
+name: Keep Supabase awake
+
+# Free Supabase projects pause after ~7 days without activity, which would also stop the automatic draw.
+# This calls a harmless database function (ping) every 3 days.
+# Note: GitHub switches off scheduled workflows in a repo with no activity for 60 days. If that happens,
+# open the Actions tab and re-enable it (or push any commit).
+
+on:
+  schedule:
+    - cron: '17 6 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        env:
+          URL: ${{ vars.VITE_SUPABASE_URL }}
+          KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          curl --fail --silent --show-error --max-time 30 -X POST "$URL/rest/v1/rpc/ping" \
+            -H "apikey: $KEY" -H "Content-Type: application/json" -d '{}'
+          echo

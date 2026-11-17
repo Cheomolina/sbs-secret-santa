@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     if (me?.role !== 'admin') return json({ error: 'Admins only' }, 403);
 
     const body = await req.json();
-    const { data: ev } = await admin.from('event').select('status').eq('id', 1).single();
+    const { data: ev } = await admin.from('events').select('status').neq('status', 'archived').single();
     const started = ev?.status === 'started';
 
     if (body.action === 'create') {
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === 'delete') {
-      if (started) return json({ error: 'The event has started. Reset it before deleting users.' }, 400);
+      if (started) return json({ error: 'The event has started. Turn the person off instead (Admin page), or reset the event.' }, 400);
       if (body.id === user.id) return json({ error: "You can't delete your own account" }, 400);
       // Best-effort cleanup of the user's uploaded images.
       for (const folder of [body.id, `${body.id}/hints`]) {

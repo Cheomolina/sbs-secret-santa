@@ -10,6 +10,7 @@ export default function Layout({ children }) {
         <span className="brand">🎅 Secret Santa</span>
         <nav>
           <NavLink to="/" end>Home</NavLink>
+          <NavLink to="/event">Event</NavLink>
           <NavLink to="/participants">Participants</NavLink>
           <NavLink to="/me">My profile</NavLink>
           {profile.role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
