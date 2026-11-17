@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { uploadImage, removeImageByUrl } from '../lib/images';
 import Avatar from '../components/Avatar';
+import { displayName } from '../lib/names';
 import { HintCard } from '../components/ProfileView';
 
 const empty = { name: '', description: '', url: '', image_url: null };
@@ -55,6 +56,15 @@ export default function MyProfile() {
   const [editing, setEditing] = useState(null); // null | 'new' | hint id
   const [msg, setMsg] = useState('');
   const fileRef = useRef();
+  const [nick, setNick] = useState(profile.nickname || '');
+
+  const saveNickname = async (e) => {
+    e.preventDefault();
+    const { error } = await supabase.rpc('set_nickname', { uid: profile.id, nick });
+    if (error) return setMsg(error.message);
+    await reloadProfile();
+    setMsg('Nickname saved ✔');
+  };
 
   const load = () => supabase.from('hints').select('*').eq('owner_id', profile.id).order('created_at')
     .then(({ data }) => setHints(data ?? []));
@@ -95,9 +105,17 @@ export default function MyProfile() {
     <>
       <h2>My profile</h2>
       <div className="card row">
-        <Avatar url={profile.photo_url} name={profile.username} size={96} />
+        <Avatar url={profile.photo_url} name={displayName(profile)} size={96} />
         <div>
-          <strong>{profile.username}</strong>
+          <strong>{displayName(profile)}</strong>
+          {profile.nickname && <span className="muted"> (login: {profile.username})</span>}
+          <form className="row wrap" onSubmit={saveNickname}>
+            <label>Nickname
+              <input value={nick} onChange={(e) => setNick(e.target.value)} maxLength={40} placeholder={profile.username} />
+            </label>
+            <button className="btn small">Save</button>
+          </form>
+          <p className="muted small">Shown to everyone instead of your username. Leave empty to use the username.</p>
           <p><button className="btn small" onClick={() => fileRef.current.click()}>Change photo</button></p>
           <input ref={fileRef} type="file" accept="image/*" hidden onChange={changePhoto} />
           {msg && <p className="muted">{msg}</p>}

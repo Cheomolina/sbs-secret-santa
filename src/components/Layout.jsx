@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../auth';
 import Avatar from './Avatar';
+import { displayName } from '../lib/names';
 
 export default function Layout({ children }) {
   const { profile, logout } = useAuth();
@@ -16,8 +17,8 @@ export default function Layout({ children }) {
           {profile.role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
         </nav>
         <div className="who">
-          <Avatar url={profile.photo_url} name={profile.username} size={30} />
-          <span>{profile.username}</span>
+          <Avatar url={profile.photo_url} name={displayName(profile)} size={30} />
+          <span>{displayName(profile)}</span>
           <button className="btn small ghost" onClick={logout}>Sign out</button>
         </div>
       </header>

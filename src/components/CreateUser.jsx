@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { callAdmin } from '../lib/supabase';
 
 export default function CreateUser({ onDone, disabled }) {
-  const [f, setF] = useState({ username: '', password: '', role: 'user' });
+  const blank = { username: '', nickname: '', password: '', role: 'user' };
+  const [f, setF] = useState(blank);
   const [msg, setMsg] = useState('');
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
@@ -10,7 +11,7 @@ export default function CreateUser({ onDone, disabled }) {
     e.preventDefault(); setMsg('');
     try {
       await callAdmin({ action: 'create', ...f });
-      setF({ username: '', password: '', role: 'user' });
+      setF(blank);
       setMsg('User created ✔');
       onDone();
     } catch (err) { setMsg(`Error: ${err.message}`); }
@@ -19,6 +20,7 @@ export default function CreateUser({ onDone, disabled }) {
   return (
     <form className="row wrap" onSubmit={submit}>
       <label>Username<input value={f.username} onChange={set('username')} required disabled={disabled} /></label>
+      <label>Nickname (optional)<input value={f.nickname} onChange={set('nickname')} maxLength={40} placeholder="Shown instead of the username" disabled={disabled} /></label>
       <label>Password<input type="text" value={f.password} onChange={set('password')} minLength={8} required disabled={disabled} /></label>
       <label>Role
         <select value={f.role} onChange={set('role')} disabled={disabled}><option value="user">User</option><option value="admin">Admin</option></select>

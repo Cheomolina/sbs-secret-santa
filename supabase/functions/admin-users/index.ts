@@ -46,7 +46,8 @@ Deno.serve(async (req) => {
         email_confirm: true,
       });
       if (error) return json({ error: error.message }, 400);
-      const { error: pErr } = await admin.from('profiles').insert({ id: created.user.id, username, role });
+      const nickname = String(body.nickname ?? '').trim().slice(0, 40) || null;
+      const { error: pErr } = await admin.from('profiles').insert({ id: created.user.id, username, role, nickname });
       if (pErr) {
         await admin.auth.admin.deleteUser(created.user.id);
         return json({ error: pErr.message.includes('duplicate') ? 'Username already exists' : pErr.message }, 400);

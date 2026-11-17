@@ -4,6 +4,7 @@ import { supabase, callAdmin } from '../lib/supabase';
 import { useAuth } from '../auth';
 import Avatar from '../components/Avatar';
 import CreateUser from '../components/CreateUser';
+import { displayName, byName } from '../lib/names';
 
 export default function Participants() {
   const { profile } = useAuth();
@@ -14,16 +15,16 @@ export default function Participants() {
 
   const load = async () => {
     const [{ data }, { data: ev }] = await Promise.all([
-      supabase.from('profiles').select('id, username, photo_url, role, active, hints(id)').order('username'),
+      supabase.from('profiles').select('id, username, nickname, photo_url, role, active, hints(id)'),
       supabase.from('events').select('status').neq('status', 'archived').single(),
     ]);
-    setPeople(data ?? []);
+    setPeople((data ?? []).sort(byName));
     setStarted(ev?.status === 'started');
   };
   useEffect(() => { load(); }, []);
 
   const del = async (p) => {
-    if (!confirm(`Delete "${p.username}" and all their hints and photos?`)) return;
+    if (!confirm(`Delete "${displayName(p)}" and all their hints and photos?`)) return;
     try { await callAdmin({ action: 'delete', id: p.id }); setMsg(''); load(); }
     catch (e) { setMsg(`Error: ${e.message}`); }
   };
@@ -47,8 +48,8 @@ export default function Participants() {
         {people.map((p) => (
           <div key={p.id} className={`person-wrap ${p.active ? '' : 'off'}`}>
             <Link to={`/participants/${p.id}`} className="person">
-              <Avatar url={p.photo_url} name={p.username} size={72} />
-              <strong>{p.username}{p.role === 'admin' && ' ⭐'}</strong>
+              <Avatar url={p.photo_url} name={displayName(p)} size={72} />
+              <strong>{displayName(p)}{p.role === 'admin' && ' ⭐'}</strong>
               {p.active
                 ? <span className="muted">{p.hints.length} hint{p.hints.length === 1 ? '' : 's'}</span>
                 : <span className="pill grey">Not taking part</span>}

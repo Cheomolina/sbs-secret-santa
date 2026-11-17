@@ -12,6 +12,9 @@ create table if not exists public.profiles (
 );
 -- "Off" participants are skipped by the draw (or count as "left" once the draw is done).
 alter table public.profiles add column if not exists active boolean not null default true;
+-- Optional display name; the username (used to log in) is shown when there is no nickname.
+alter table public.profiles add column if not exists nickname text
+  check (nickname is null or char_length(nickname) between 1 and 40);
 
 create table if not exists public.hints (
   id          uuid primary key default gen_random_uuid(),
@@ -252,6 +255,18 @@ begin
   update public.profiles set active = true;   -- everybody starts the new edition "on"
 end $$;
 
+-- ───────────── Nicknames ─────────────
+-- Users change their own; admins can change anybody's. An empty value removes the nickname.
+create or replace function public.set_nickname(uid uuid, nick text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if uid is distinct from auth.uid() and not public.is_admin() then
+    raise exception 'You can only change your own nickname';
+  end if;
+  update public.profiles set nickname = nullif(trim(nick), '') where id = uid;
+  if not found then raise exception 'User not found'; end if;
+end $$;
+
 -- ───────────── Participants on/off and replacements ─────────────
 create or replace function public.set_participant_active(uid uuid, flag boolean) returns void
 language plpgsql security definer set search_path = public as $$
@@ -402,7 +417,9 @@ begin
 
       -- One extra, independent draw to show as a sample (never stored).
       shuffled := public._find_cycle(ids, prev);
-      select jsonb_agg(jsonb_build_object('giver', g.username, 'receiver', r.username) order by g.username)
+      select jsonb_agg(jsonb_build_object('giver', coalesce(g.nickname, g.username),
+                                          'receiver', coalesce(r.nickname, r.username))
+                       order by coalesce(g.nickname, g.username))
         into sample
         from generate_series(1, n) i
         join public.profiles g on g.id = shuffled[i]
@@ -438,6 +455,9 @@ language sql stable as $$ select now(); $$;
 revoke all on function public._make_cycle(uuid[]), public._find_cycle(uuid[], int),
   public._prev_event(int), public._do_draw(), public.auto_start_event()
   from public, anon, authenticated;
+
+revoke all on function public.set_nickname(uuid, text) from public, anon;
+grant execute on function public.set_nickname(uuid, text) to authenticated;
 
 revoke all on function public.start_event(), public.set_event_details(text, timestamptz, timestamptz, text, text, text, boolean),
   public.reset_event(), public.start_next_event(), public.set_participant_active(uuid, boolean),

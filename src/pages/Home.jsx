@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import ProfileView from '../components/ProfileView';
+import { displayName } from '../lib/names';
 
 function useCountdown(date) {
   const [now, setNow] = useState(Date.now());
@@ -58,7 +59,7 @@ export default function Home() {
         {!profile.active && <div className="banner warn">You are currently marked as not taking part in this event.</div>}
         {target && !target.active && (
           <div className="banner warn">
-            🎁 The person you were drawn for ({target.username}) has left the event. The admin will re-pair
+            🎁 The person you were drawn for ({displayName(target)}) has left the event. The admin will re-pair
             people soon; check back here to see your new target.
           </div>
         )}
@@ -75,7 +76,7 @@ export default function Home() {
     <div className="center-card wide">
       <div className="big-emoji">⏳</div>
       <h1>{event.name}</h1>
-      <p>Hi {profile.username}! The draw hasn&apos;t happened yet. Meanwhile, add your photo and gift hints in <strong>My profile</strong> so your Secret Santa knows what to get you.</p>
+      <p>Hi {displayName(profile)}! The draw hasn&apos;t happened yet. Meanwhile, add your photo and gift hints in <strong>My profile</strong> so your Secret Santa knows what to get you.</p>
       <Summary event={event} />
       {event.draw_date ? (
         <>

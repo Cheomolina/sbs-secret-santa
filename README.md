@@ -6,6 +6,7 @@ Company Secret Santa web app. Static front end (React + Vite) on **GitHub Pages*
 - Each user has a profile photo and a list of gift hints (name, image, description, link).
 - The draw produces a single random loop: nobody gets themselves, nobody gets a 2-person swap. Users only ever see their own target; **nobody, admin included, can read the other pairs** (enforced by database row-level security).
 - The draw runs **automatically** once the draw date passes (checked every 5 minutes), or the admin can start it manually. The admin can also run an **event test** that verifies the algorithm and shows one sample draw (nothing is saved).
+- **Nicknames**: each account has a login username and an optional nickname. The nickname is what everyone sees; without one, the username is shown. Users set their own in *My profile*, and the admin can set anyone's.
 - **Event details** page: gift exchange date, place, budget and notes.
 - **No repeats**: each draw avoids last year's pairs (can be switched off).
 - **On/off + replace system**: the admin can turn participants off. Once at least 2 have left, *Replace participants* re-pairs only the people left without a giver or giftee; everyone else keeps their target.

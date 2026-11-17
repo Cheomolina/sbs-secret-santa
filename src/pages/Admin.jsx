@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase, callAdmin } from '../lib/supabase';
 import { useAuth } from '../auth';
 import CreateUser from '../components/CreateUser';
+import { displayName, byName } from '../lib/names';
 
 const MIN_LEAVERS = 2; // keep in sync with min_leavers in repair_event() (schema.sql)
 const fmt = (iso) => (iso ? new Date(iso).toLocaleString() : 'not set');
@@ -113,12 +114,12 @@ export default function Admin() {
   const load = async () => {
     const [{ data: evs }, { data: us }] = await Promise.all([
       supabase.from('events').select('*').order('id', { ascending: false }),
-      supabase.from('profiles').select('id, username, role, active, created_at').order('username'),
+      supabase.from('profiles').select('id, username, nickname, role, active, created_at'),
     ]);
     const current = evs?.find((e) => e.status !== 'archived');
     setEvent(current);
     setHistory(evs?.filter((e) => e.status === 'archived') ?? []);
-    setUsers(us ?? []);
+    setUsers((us ?? []).sort(byName));
     if (current?.status === 'started') {
       const { data } = await supabase.rpc('leavers_count');
       setLeavers(data ?? 0);
@@ -127,13 +128,20 @@ export default function Admin() {
   useEffect(() => { load(); }, []);
 
   const del = async (u) => {
-    if (!confirm(`Delete user "${u.username}" and all their data?`)) return;
+    if (!confirm(`Delete user "${displayName(u)}" (${u.username}) and all their data?`)) return;
     try { await callAdmin({ action: 'delete', id: u.id }); setMsg(''); load(); } catch (e) { setMsg(`Error: ${e.message}`); }
   };
   const resetPw = async (u) => {
     const password = prompt(`New password for ${u.username} (min 8 characters):`);
     if (!password) return;
     try { await callAdmin({ action: 'set_password', id: u.id, password }); setMsg('Password changed ✔'); } catch (e) { setMsg(`Error: ${e.message}`); }
+  };
+  const rename = async (u) => {
+    const nick = prompt(`Nickname for ${u.username} (leave empty to remove):`, u.nickname || '');
+    if (nick === null) return;
+    const { error } = await supabase.rpc('set_nickname', { uid: u.id, nick });
+    setMsg(error ? `Error: ${error.message}` : 'Nickname saved ✔');
+    load();
   };
   const toggle = async (u) => {
     const { error } = await supabase.rpc('set_participant_active', { uid: u.id, flag: !u.active });
@@ -156,14 +164,16 @@ export default function Admin() {
         <CreateUser onDone={load} disabled={started} />
         {msg && <p className={msg.startsWith('Error') ? 'error' : 'ok'}>{msg}</p>}
         <table>
-          <thead><tr><th>Username</th><th>Role</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Login</th><th>Role</th><th>Status</th><th></th></tr></thead>
           <tbody>
             {users.map((u) => (
               <tr key={u.id} className={u.active ? '' : 'off'}>
-                <td>{u.username}{u.id === profile.id && ' (you)'}</td>
+                <td>{displayName(u)}{u.id === profile.id && ' (you)'}</td>
+                <td className="muted">{u.username}</td>
                 <td>{u.role}</td>
                 <td><span className={`pill ${u.active ? 'green' : 'grey'}`}>{u.active ? 'On' : 'Off'}</span></td>
                 <td className="actions">
+                  <button className="btn small ghost" onClick={() => rename(u)}>Nickname</button>
                   <button className="btn small ghost" onClick={() => toggle(u)}>{u.active ? 'Turn off' : 'Turn on'}</button>
                   <button className="btn small ghost" onClick={() => resetPw(u)}>Set password</button>
                   <button className="btn small danger" onClick={() => del(u)} disabled={started || u.id === profile.id}>Delete</button>
