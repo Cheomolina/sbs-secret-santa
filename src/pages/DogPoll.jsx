@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import Avatar from '../components/Avatar';
+import ResultsCarousel, { buildSlides } from '../components/ResultsCarousel';
 import { displayName, byName } from '../lib/names';
 
 function DogCard({ dog, users, value, disabled, onPick, status }) {
@@ -40,6 +41,7 @@ function DogCard({ dog, users, value, disabled, onPick, status }) {
 function Results({ dogs, people }) {
   const [rows, setRows] = useState(null);
   const [error, setError] = useState('');
+  const [view, setView] = useState('slides');
 
   useEffect(() => {
     supabase.rpc('dog_poll_results').then(({ data, error: e }) => (e ? setError(e.message) : setRows(data)));
@@ -53,11 +55,22 @@ function Results({ dogs, people }) {
     .filter((r) => r.user)
     .sort((a, b) => byName(a.user, b.user));
 
+  const slides = buildSlides(sorted, dogById);
+
   return (
     <section className="card results">
-      <h3>🏆 Results</h3>
+      <div className="row spread">
+        <h3>🏆 Results</h3>
+        {sorted.length > 0 && (
+          <div className="seg">
+            <button className={view === 'slides' ? 'on' : ''} onClick={() => setView('slides')}>Slideshow</button>
+            <button className={view === 'list' ? 'on' : ''} onClick={() => setView('list')}>List</button>
+          </div>
+        )}
+      </div>
       {sorted.length === 0 && <p className="muted">Nobody got any votes.</p>}
-      {sorted.map((r) => (
+      {view === 'slides' && <ResultsCarousel slides={slides} />}
+      {view === 'list' && sorted.map((r) => (
         <div key={r.user_id} className="result-row">
           <div className="result-user">
             <Avatar url={r.user.photo_url} name={displayName(r.user)} size={44} />
@@ -142,6 +155,7 @@ export default function DogPoll() {
 
       {revealed && <Results dogs={dogs} people={people} />}
 
+      {revealed && dogs.length > 0 && <h3>Your votes</h3>}
       {dogs.length === 0 && <p className="muted">No dogs yet.</p>}
       <div className="dog-grid">
         {dogs.map((d) => (
