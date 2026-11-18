@@ -4,7 +4,7 @@ import Avatar from './Avatar';
 import { displayName } from '../lib/names';
 
 export default function Layout({ children }) {
-  const { profile, logout } = useAuth();
+  const { profile, logout, showGames, settings } = useAuth();
   return (
     <>
       <header className="topbar">
@@ -13,6 +13,9 @@ export default function Layout({ children }) {
           <NavLink to="/" end>Home</NavLink>
           <NavLink to="/event">Event</NavLink>
           <NavLink to="/participants">Participants</NavLink>
+          {showGames && (
+            <NavLink to="/games">Games{!settings.games_visible && <span className="lock" title="Only visible to you (admin)"> 🔒</span>}</NavLink>
+          )}
           <NavLink to="/me">My profile</NavLink>
           {profile.role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
         </nav>

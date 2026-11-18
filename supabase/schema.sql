@@ -446,6 +446,140 @@ begin
   );
 end $$;
 
+-- ───────────── Games: The Dog Poll ─────────────
+-- Every user says which colleague each dog looks like. Votes are private: nobody can read anybody
+-- else's votes (admin included). When the admin reveals the results, only the winners are shown.
+create table if not exists public.game_settings (
+  id                int primary key default 1 check (id = 1),
+  games_visible     boolean not null default false,   -- is the Games section open to regular users?
+  dog_poll_revealed boolean not null default false    -- are the Dog Poll results public (voting closed)?
+);
+
+create table if not exists public.dogs (
+  id             uuid primary key default gen_random_uuid(),
+  name           text not null check (char_length(name) between 1 and 80),
+  main_image_url text not null,
+  gallery_urls   text[] not null default '{}' check (cardinality(gallery_urls) <= 12),
+  is_example     boolean not null default false,
+  created_at     timestamptz not null default now()
+);
+
+create table if not exists public.dog_votes (
+  dog_id        uuid not null references public.dogs on delete cascade,
+  voter_id      uuid not null references public.profiles on delete cascade,
+  voted_user_id uuid not null references public.profiles on delete cascade,
+  primary key (dog_id, voter_id),
+  check (voter_id <> voted_user_id)
+);
+
+-- First install only: closed settings plus one example dog (the admin can delete it).
+do $$
+begin
+  if not exists (select 1 from public.game_settings) then
+    insert into public.game_settings (id) values (1);
+    insert into public.dogs (name, main_image_url, is_example)
+    values ('Example: Sir Barksalot',
+      'data:image/svg+xml,%3Csvg xmlns=''http://www.w3.org/2000/svg'' viewBox=''0 0 400 300''%3E%3Crect width=''400'' height=''300'' fill=''%23f6d9a8''/%3E%3Ctext x=''200'' y=''210'' font-size=''170'' text-anchor=''middle''%3E%F0%9F%90%B6%3C/text%3E%3C/svg%3E',
+      true);
+  end if;
+end $$;
+
+alter table public.game_settings enable row level security;
+alter table public.dogs          enable row level security;
+alter table public.dog_votes     enable row level security;
+revoke all on public.game_settings, public.dogs, public.dog_votes from anon;
+
+drop policy if exists "settings readable" on public.game_settings;
+create policy "settings readable" on public.game_settings for select to authenticated using (true);
+revoke insert, update, delete on public.game_settings from authenticated;
+
+-- Dogs are invisible to regular users until the admin opens the Games section.
+drop policy if exists "dogs readable" on public.dogs;
+create policy "dogs readable" on public.dogs for select to authenticated
+  using (public.is_admin() or (select games_visible from public.game_settings where id = 1));
+drop policy if exists "dogs admin insert" on public.dogs;
+create policy "dogs admin insert" on public.dogs for insert to authenticated with check (public.is_admin());
+drop policy if exists "dogs admin update" on public.dogs;
+create policy "dogs admin update" on public.dogs for update to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "dogs admin delete" on public.dogs;
+create policy "dogs admin delete" on public.dogs for delete to authenticated using (public.is_admin());
+
+-- You can only ever read your own votes; writes go through cast_vote().
+drop policy if exists "own votes" on public.dog_votes;
+create policy "own votes" on public.dog_votes for select to authenticated using (voter_id = auth.uid());
+revoke insert, update, delete on public.dog_votes from authenticated;
+
+-- Pick (or clear, with a null user) who a dog looks like.
+create or replace function public.cast_vote(p_dog uuid, p_user uuid) returns void
+language plpgsql security definer set search_path = public as $$
+declare s public.game_settings;
+begin
+  if auth.uid() is null then raise exception 'Not signed in'; end if;
+  select * into s from public.game_settings where id = 1;
+  if not (s.games_visible or public.is_admin()) then raise exception 'Games are not open yet'; end if;
+  if s.dog_poll_revealed then raise exception 'Voting is closed: the results have been revealed'; end if;
+  if p_user is null then
+    delete from public.dog_votes where dog_id = p_dog and voter_id = auth.uid();
+    return;
+  end if;
+  if p_user = auth.uid() then raise exception 'You can''t pick yourself'; end if;
+  if not exists (select 1 from public.profiles where id = p_user) then raise exception 'User not found'; end if;
+  if not exists (select 1 from public.dogs where id = p_dog) then raise exception 'Dog not found'; end if;
+  insert into public.dog_votes (dog_id, voter_id, voted_user_id) values (p_dog, auth.uid(), p_user)
+  on conflict (dog_id, voter_id) do update set voted_user_id = excluded.voted_user_id;
+end $$;
+
+-- For each user who got votes: the dog(s) with the most votes for them (a tie returns all of them).
+-- Only works after the admin reveals the results.
+create or replace function public.dog_poll_results() returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not (select dog_poll_revealed from public.game_settings where id = 1) then
+    raise exception 'The results have not been revealed yet';
+  end if;
+  return coalesce((
+    with c as (select voted_user_id as u, dog_id as d, count(*) as n from public.dog_votes group by 1, 2),
+         m as (select u, max(n) as mx from c group by u)
+    select jsonb_agg(jsonb_build_object('user_id', x.u, 'dogs', x.dogs))
+    from (
+      select c.u, jsonb_agg(jsonb_build_object('dog_id', c.d, 'votes', c.n) order by c.n desc, c.d) as dogs
+      from c join m on m.u = c.u and c.n = m.mx
+      group by c.u
+    ) x
+  ), '[]'::jsonb);
+end $$;
+
+create or replace function public.set_games_visible(flag boolean) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'Admins only'; end if;
+  update public.game_settings set games_visible = flag where id = 1;
+end $$;
+
+create or replace function public.set_dog_poll_revealed(flag boolean) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'Admins only'; end if;
+  update public.game_settings set dog_poll_revealed = flag where id = 1;
+end $$;
+
+-- Wipes every vote (e.g. after the admin has tried the game out).
+create or replace function public.reset_dog_votes() returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'Admins only'; end if;
+  delete from public.dog_votes where true;
+  update public.game_settings set dog_poll_revealed = false where id = 1;
+end $$;
+
+revoke all on function public.cast_vote(uuid, uuid), public.dog_poll_results(),
+  public.set_games_visible(boolean), public.set_dog_poll_revealed(boolean), public.reset_dog_votes()
+  from public, anon;
+grant execute on function public.cast_vote(uuid, uuid), public.dog_poll_results(),
+  public.set_games_visible(boolean), public.set_dog_poll_revealed(boolean), public.reset_dog_votes()
+  to authenticated;
+
 -- ───────────── Keep-alive ─────────────
 -- Free Supabase projects pause after a week without activity. A scheduled GitHub workflow calls this.
 create or replace function public.ping() returns timestamptz

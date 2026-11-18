@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase, callAdmin } from '../lib/supabase';
 import { useAuth } from '../auth';
 import CreateUser from '../components/CreateUser';
+import DogManager from '../components/DogManager';
 import { displayName, byName } from '../lib/names';
 
 const MIN_LEAVERS = 2; // keep in sync with min_leavers in repair_event() (schema.sql)
@@ -103,6 +104,56 @@ function EventPanel({ event, leavers, reload }) {
   );
 }
 
+function GamesPanel() {
+  const { settings, reloadSettings } = useAuth();
+  const [msg, setMsg] = useState('');
+
+  const run = async (name, args, ok) => {
+    const { error } = await supabase.rpc(name, args);
+    setMsg(error ? `Error: ${error.message}` : ok);
+    reloadSettings();
+  };
+
+  const visible = settings.games_visible;
+  const revealed = settings.dog_poll_revealed;
+
+  const wipe = () => {
+    if (prompt('This deletes EVERY vote (yours too) and re-opens voting. Type RESET to confirm.') !== 'RESET') return;
+    run('reset_dog_votes', undefined, 'All votes deleted ✔');
+  };
+
+  return (
+    <section className="card">
+      <h3>Games — <span className={`pill ${visible ? 'green' : 'grey'}`}>{visible ? 'Visible to everyone' : 'Hidden (only you)'}</span></h3>
+      <p className="muted">
+        The Games menu is hidden from regular users. You always see it (marked 🔒 while hidden), so you can try it out first.
+        Your own test votes count, so use <em>Delete all votes</em> before opening it.
+      </p>
+      <div className="row wrap">
+        {visible
+          ? <button className="btn ghost" onClick={() => run('set_games_visible', { flag: false }, 'Games hidden again.')}>Hide games again</button>
+          : <button className="btn" onClick={() => confirm('Show the Games menu to every user?') && run('set_games_visible', { flag: true }, 'Games are now visible to everyone 🎉')}>Reveal games to users</button>}
+      </div>
+
+      <div className="subcard">
+        <h4>The Dog Poll — <span className={`pill ${revealed ? 'green' : 'amber'}`}>{revealed ? 'Results revealed' : 'Voting open'}</span></h4>
+        <p className="muted">
+          Votes are private: nobody, including you, can read them. Revealing the results closes voting and shows the
+          <strong> Results</strong> section (the winning dog for each user; ties show every winner).
+        </p>
+        <div className="row wrap">
+          {revealed
+            ? <button className="btn ghost" onClick={() => run('set_dog_poll_revealed', { flag: false }, 'Results hidden, voting is open again.')}>Hide results &amp; reopen voting</button>
+            : <button className="btn" onClick={() => confirm('Reveal the Dog Poll results? Voting will close.') && run('set_dog_poll_revealed', { flag: true }, 'Results revealed 🏆')}>Reveal results</button>}
+          <button className="btn danger" onClick={wipe}>Delete all votes…</button>
+        </div>
+        <DogManager />
+      </div>
+      {msg && <p className={msg.startsWith('Error') ? 'error' : 'ok'}>{msg}</p>}
+    </section>
+  );
+}
+
 export default function Admin() {
   const { profile } = useAuth();
   const [event, setEvent] = useState(null);
@@ -159,6 +210,7 @@ export default function Admin() {
     <>
       <h2>Admin</h2>
       <EventPanel event={event} leavers={leavers} reload={load} />
+      <GamesPanel />
 
       <section className="card">
         <h3>Users ({users.length}) — {activeCount} taking part</h3>

@@ -20,10 +20,17 @@ export function AuthProvider({ children }) {
     setProfile(data);
   }, []);
 
+  // Games switches: games_visible (menu open to users) and dog_poll_revealed (results public).
+  const [settings, setSettings] = useState({ games_visible: false, dog_poll_revealed: false });
+  const reloadSettings = useCallback(async () => {
+    const { data } = await supabase.from('game_settings').select('*').eq('id', 1).maybeSingle();
+    if (data) setSettings(data);
+  }, []);
+
   useEffect(() => {
-    if (session?.user) loadProfile(session.user.id);
+    if (session?.user) { loadProfile(session.user.id); reloadSettings(); }
     else setProfile(null);
-  }, [session, loadProfile]);
+  }, [session, loadProfile, reloadSettings]);
 
   const login = async (username, password) => {
     const { error } = await supabase.auth.signInWithPassword({ email: usernameToEmail(username), password });
@@ -32,8 +39,10 @@ export function AuthProvider({ children }) {
   const logout = () => supabase.auth.signOut();
 
   const loading = session === undefined || (session && !profile);
+  const showGames = profile?.role === 'admin' || settings.games_visible;
   return (
-    <Ctx.Provider value={{ session, profile, loading, login, logout, reloadProfile: () => loadProfile(session.user.id) }}>
+    <Ctx.Provider value={{ session, profile, loading, login, logout, settings, reloadSettings, showGames,
+      reloadProfile: () => loadProfile(session.user.id) }}>
       {children}
     </Ctx.Provider>
   );
