@@ -26,7 +26,7 @@ function DogCard({ dog, users, value, disabled, onPick, status, taken }) {
       )}
       <div className="dog-body">
         <h4>{dog.name}</h4>
-        <label>Looks like…
+        <label>This is the spirit dog of…
           <select value={value || ''} disabled={disabled} onChange={(e) => onPick(dog.id, e.target.value || null)}>
             <option value="">— choose a colleague —</option>
             {users.map((u) => {
@@ -79,7 +79,7 @@ function Results({ dogs, people }) {
             <Avatar url={r.user.photo_url} name={displayName(r.user)} size={44} />
             <strong>{displayName(r.user)}</strong>
           </div>
-          <span className="looks">looks like</span>
+          <span className="looks">his/her spirit dog is</span>
           <div className="result-dogs">
             {r.dogs.map((d) => {
               const dog = dogById[d.dog_id];
@@ -152,7 +152,7 @@ export default function DogPoll() {
         ? <div className="banner">Voting is closed. Here are the results!</div>
         : (
           <p>
-            Pick the colleague each dog looks like. Your choices are <strong>private</strong>: nobody sees them until the results are revealed.
+            Pick the colleague each dog is the spirit dog of. Your choices are <strong>private</strong>: nobody sees them until the results are revealed.
             You&apos;ve voted on <strong>{done}</strong> of <strong>{dogs.length}</strong> dogs.
           </p>
         )}

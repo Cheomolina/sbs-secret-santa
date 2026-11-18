@@ -22,7 +22,7 @@ function Slide({ s }) {
   if (s.type === 'user') {
     return (
       <div className="slide slide-user">
-        <span className="kicker">{s.dogs > 1 ? 'Tie! This person looks like…' : 'This person looks like…'}</span>
+        <span className="kicker">{s.dogs > 1 ? 'Tie! His/her spirit dog is…' : 'His/her spirit dog is…'}</span>
         <Avatar url={s.user.photo_url} name={displayName(s.user)} size={200} />
         <h2>{displayName(s.user)}</h2>
       </div>
@@ -31,7 +31,7 @@ function Slide({ s }) {
   if (s.type === 'dog') {
     return (
       <div className="slide slide-dog">
-        <span className="kicker">{displayName(s.user)} looks like</span>
+        <span className="kicker">{displayName(s.user)}&apos;s spirit dog is</span>
         <img src={s.dog.main_image_url} alt={s.dog.name} />
         <h2>{s.dog.name}</h2>
         <p className="muted">{s.votes} vote{s.votes === 1 ? '' : 's'}{s.tie && ' · tied winner'}</p>
