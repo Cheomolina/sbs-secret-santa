@@ -5,6 +5,7 @@ import { uploadImage, removeImageByUrl } from '../lib/images';
 import Avatar from '../components/Avatar';
 import { displayName } from '../lib/names';
 import { HintCard } from '../components/ProfileView';
+import { WISHLIST_EXAMPLES } from '../lib/wishlistExamples';
 
 const empty = { name: '', description: '', url: '', image_url: null };
 
@@ -43,7 +44,7 @@ function HintForm({ initial, onSave, onCancel, uid }) {
       {h.image_url && <img className="preview" src={h.image_url} alt="" />}
       {error && <p className="error">{error}</p>}
       <div className="row">
-        <button className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save hint'}</button>
+        <button className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save item'}</button>
         <button type="button" className="btn ghost" onClick={onCancel}>Cancel</button>
       </div>
     </form>
@@ -55,6 +56,9 @@ export default function MyProfile() {
   const [hints, setHints] = useState(null);
   const [editing, setEditing] = useState(null); // null | 'new' | hint id
   const [msg, setMsg] = useState('');
+  const [draft, setDraft] = useState(empty);
+  const [draftKey, setDraftKey] = useState(0);
+  const startNew = (initial) => { setDraft(initial); setDraftKey((k) => k + 1); setEditing('new'); };
   const fileRef = useRef();
   const [nick, setNick] = useState(profile.nickname || '');
 
@@ -123,13 +127,25 @@ export default function MyProfile() {
       </div>
 
       <div className="row spread">
-        <h3>My gift hints</h3>
-        {editing === null && <button className="btn small" onClick={() => setEditing('new')}>+ Add hint</button>}
+        <h3>My wishlist</h3>
+        {editing === null && <button className="btn small" onClick={() => startNew(empty)}>+ Add item</button>}
       </div>
-      <p className="muted">These are what your Secret Santa will see. Everyone can see them, but nobody knows who is drawing you.</p>
+      <p className="muted">This is what your Secret Santa will see. Everyone can see it, but nobody knows who is drawing you.</p>
 
-      {editing === 'new' && <HintForm initial={empty} uid={profile.id} onSave={save} onCancel={() => setEditing(null)} />}
-      {hints === null ? <p>Loading…</p> : hints.length === 0 && editing !== 'new' && <p className="muted">No hints yet. Add some!</p>}
+      <details className="subcard">
+        <summary><strong>Need ideas?</strong> Tap one to start from an example</summary>
+        <div className="example-chips">
+          {WISHLIST_EXAMPLES.map((ex) => (
+            <button key={ex.name} type="button" className="chip" title={ex.description}
+              onClick={() => startNew({ ...empty, name: ex.name, description: ex.description })}>
+              {ex.emoji} {ex.name}
+            </button>
+          ))}
+        </div>
+      </details>
+
+      {editing === 'new' && <HintForm key={draftKey} initial={draft} uid={profile.id} onSave={save} onCancel={() => setEditing(null)} />}
+      {hints === null ? <p>Loading…</p> : hints.length === 0 && editing !== 'new' && <p className="muted">Your wishlist is empty. Add some items!</p>}
       <div className="hint-grid">
         {hints?.map((h) => editing === h.id
           ? <HintForm key={h.id} initial={h} uid={profile.id} onSave={save} onCancel={() => setEditing(null)} />

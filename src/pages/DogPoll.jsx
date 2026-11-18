@@ -167,6 +167,24 @@ export default function DogPoll() {
             onPick={pick} status={status[d.id]} taken={taken} />
         ))}
       </div>
+
+      {dogs.length > 0 && (
+        <section className="card">
+          <h3>Your choices</h3>
+          {done === 0 && <p className="muted">You haven&apos;t chosen anyone yet.</p>}
+          <ul className="choice-list">
+            {dogs.filter((d) => votes[d.id]).map((d) => {
+              const person = people.find((p) => p.id === votes[d.id]);
+              return (
+                <li key={d.id}>
+                  <span><strong>{person ? displayName(person) : '?'}</strong> → {d.name}</span>
+                  {!revealed && <button className="btn small ghost danger" onClick={() => pick(d.id, null)}>Clear</button>}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
     </>
   );
 }

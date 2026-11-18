@@ -3,7 +3,7 @@
 Company Secret Santa web app. Static front end (React + Vite) on **GitHub Pages**, backend on **Supabase** (login, database, photo storage).
 
 - Accounts are created **only by an admin** (username + password, no email).
-- Each user has a profile photo and a list of gift hints (name, image, description, link).
+- Each user has a profile photo and a wishlist (items with name, image, description, link). *My wishlist* offers 15 example items to start from (`src/lib/wishlistExamples.js`).
 - The draw produces a single random loop: nobody gets themselves, nobody gets a 2-person swap. Users only ever see their own target; **nobody, admin included, can read the other pairs** (enforced by database row-level security).
 - The draw runs **automatically** once the draw date passes (checked every 5 minutes), or the admin can start it manually. The admin can also run an **event test** that verifies the algorithm and shows one sample draw (nothing is saved).
 - **Nicknames**: each account has a login username and an optional nickname. The nickname is what everyone sees; without one, the username is shown. Users set their own in *My profile*, and the admin can set anyone's.
@@ -47,7 +47,7 @@ npm run dev
 ## Using it
 1. Sign in as the admin → **Admin** → create a user for each colleague (give them their password).
 2. On the **Event** page set the draw date, exchange date, place and budget. Run **Run event test** (Admin) to check everything is ready.
-3. Users sign in, add a photo and hints. On the date, the draw runs and **Home** shows each person their target.
+3. Users sign in, add a photo and wishlist items. On the date, the draw runs and **Home** shows each person their target.
 
 Notes
 - Usernames map to internal emails `username@santa.local`. If Supabase ever rejects that domain, change it in `src/lib/config.js` and the `EMAIL_DOMAIN` secret of the function.

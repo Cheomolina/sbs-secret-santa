@@ -25,7 +25,7 @@ export default function Participants() {
   useEffect(() => { load(); }, []);
 
   const del = async (p) => {
-    if (!confirm(`Delete "${displayName(p)}" and all their hints and photos?`)) return;
+    if (!confirm(`Delete "${displayName(p)}" and all their wishlist items and photos?`)) return;
     try { await callAdmin({ action: 'delete', id: p.id }); setMsg(''); load(); }
     catch (e) { setMsg(`Error: ${e.message}`); }
   };
@@ -52,7 +52,7 @@ export default function Participants() {
               <Avatar url={p.photo_url} name={displayName(p)} size={72} />
               <strong>{displayName(p)}{p.role === 'admin' && ' ⭐'}</strong>
               {p.active
-                ? <span className="muted">{p.hints.length} hint{p.hints.length === 1 ? '' : 's'}</span>
+                ? <span className="muted">{p.hints.length} wishlist item{p.hints.length === 1 ? '' : 's'}</span>
                 : <span className="pill grey">Not taking part</span>}
             </Link>
             {isAdmin && p.id !== profile.id && (

@@ -23,8 +23,8 @@ export default function ProfileView({ profile }) {
         <Avatar url={profile.photo_url} name={displayName(profile)} size={96} />
         <h2>{displayName(profile)}</h2>
       </div>
-      <h3>Gift hints</h3>
-      {hints.length === 0 && <p className="muted">No hints yet.</p>}
+      <h3>Wishlist</h3>
+      {hints.length === 0 && <p className="muted">The wishlist is empty so far.</p>}
       <div className="hint-grid">{hints.map((h) => <HintCard key={h.id} hint={h} />)}</div>
     </section>
   );

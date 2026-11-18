@@ -76,7 +76,7 @@ export default function Home() {
     <div className="center-card wide">
       <div className="big-emoji">⏳</div>
       <h1>{event.name}</h1>
-      <p>Hi {displayName(profile)}! The draw hasn&apos;t happened yet. Meanwhile, add your photo and gift hints in <strong>My profile</strong> so your Secret Santa knows what to get you.</p>
+      <p>Hi {displayName(profile)}! The draw hasn&apos;t happened yet. Meanwhile, add your photo and wishlist in <strong>My profile</strong> so your Secret Santa knows what to get you.</p>
       <Summary event={event} />
       {event.draw_date ? (
         <>
