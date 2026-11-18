@@ -6,7 +6,7 @@ import Avatar from '../components/Avatar';
 import ResultsCarousel, { buildSlides } from '../components/ResultsCarousel';
 import { displayName, byName } from '../lib/names';
 
-function DogCard({ dog, users, value, disabled, onPick, status }) {
+function DogCard({ dog, users, value, disabled, onPick, status, taken }) {
   const images = [dog.main_image_url, ...dog.gallery_urls];
   const [shown, setShown] = useState(0);
   return (
@@ -29,7 +29,10 @@ function DogCard({ dog, users, value, disabled, onPick, status }) {
         <label>Looks like…
           <select value={value || ''} disabled={disabled} onChange={(e) => onPick(dog.id, e.target.value || null)}>
             <option value="">— choose a colleague —</option>
-            {users.map((u) => <option key={u.id} value={u.id}>{displayName(u)}</option>)}
+            {users.map((u) => {
+              const used = taken.has(u.id) && u.id !== value;
+              return <option key={u.id} value={u.id} disabled={used}>{displayName(u)}{used ? ' (already chosen)' : ''}</option>;
+            })}
           </select>
         </label>
         {status && <span className={status === 'saved' ? 'ok small' : 'error small'}>{status === 'saved' ? '✔ saved' : status}</span>}
@@ -125,6 +128,7 @@ export default function DogPoll() {
 
   const others = useMemo(() => people.filter((p) => p.id !== profile.id), [people, profile.id]);
   const revealed = settings.dog_poll_revealed;
+  const taken = useMemo(() => new Set(Object.values(votes).filter(Boolean)), [votes]);
 
   const pick = async (dogId, userId) => {
     setVotes((v) => ({ ...v, [dogId]: userId || undefined }));
@@ -160,7 +164,7 @@ export default function DogPoll() {
       <div className="dog-grid">
         {dogs.map((d) => (
           <DogCard key={d.id} dog={d} users={others} value={votes[d.id]} disabled={revealed}
-            onPick={pick} status={status[d.id]} />
+            onPick={pick} status={status[d.id]} taken={taken} />
         ))}
       </div>
     </>
