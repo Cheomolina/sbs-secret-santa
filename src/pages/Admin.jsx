@@ -4,6 +4,8 @@ import { supabase, callAdmin } from '../lib/supabase';
 import { useAuth } from '../auth';
 import CreateUser from '../components/CreateUser';
 import DogManager from '../components/DogManager';
+import Avatar from '../components/Avatar';
+import { uploadImage, removeImageByUrl } from '../lib/images';
 import { displayName, byName } from '../lib/names';
 
 const MIN_LEAVERS = 2; // keep in sync with min_leavers in repair_event() (schema.sql)
@@ -161,11 +163,12 @@ export default function Admin() {
   const [users, setUsers] = useState(null);
   const [leavers, setLeavers] = useState(0);
   const [msg, setMsg] = useState('');
+  const [tab, setTab] = useState('event');
 
   const load = async () => {
     const [{ data: evs, error: e1 }, { data: us, error: e2 }] = await Promise.all([
       supabase.from('events').select('*').order('id', { ascending: false }),
-      supabase.from('profiles').select('id, username, nickname, role, active, created_at'),
+      supabase.from('profiles').select('id, username, nickname, photo_url, role, active, created_at'),
     ]);
     const failure = e1 || e2;
     setMsg(failure ? `Error loading data: ${failure.message}. Run the latest supabase/schema.sql in the SQL Editor.` : '');
@@ -196,6 +199,19 @@ export default function Admin() {
     setMsg(error ? `Error: ${error.message}` : 'Nickname saved ✔');
     load();
   };
+  const changePhoto = async (u, file) => {
+    if (!file) return;
+    setMsg(`Uploading photo for ${displayName(u)}…`);
+    try {
+      // Stored under the admin's own folder (allowed by storage rules), then linked to the user.
+      const url = await uploadImage(file, `${profile.id}/users/${u.id}-${Date.now()}.jpg`);
+      const { error } = await supabase.from('profiles').update({ photo_url: url }).eq('id', u.id);
+      if (error) throw error;
+      removeImageByUrl(u.photo_url);
+      setMsg(`Photo updated for ${displayName(u)} ✔`);
+      load();
+    } catch (e) { setMsg(`Error: ${e.message}. Run the latest supabase/schema.sql in the SQL Editor.`); }
+  };
   const toggle = async (u) => {
     const { error } = await supabase.rpc('set_participant_active', { uid: u.id, flag: !u.active });
     setMsg(error ? `Error: ${error.message}` : '');
@@ -209,8 +225,16 @@ export default function Admin() {
   return (
     <>
       <h2>Admin</h2>
+      <div className="tabs">
+        <button className={tab === 'event' ? 'on' : ''} onClick={() => setTab('event')}>Event &amp; users</button>
+        <button className={tab === 'games' ? 'on' : ''} onClick={() => setTab('games')}>🎮 Games</button>
+      </div>
+
+      {tab === 'games' && <GamesPanel />}
+
+      {tab === 'event' && (
+      <>
       <EventPanel event={event} leavers={leavers} reload={load} />
-      <GamesPanel />
 
       <section className="card">
         <h3>Users ({users.length}) — {activeCount} taking part</h3>
@@ -222,11 +246,19 @@ export default function Admin() {
           <tbody>
             {users.map((u) => (
               <tr key={u.id} className={u.active ? '' : 'off'}>
-                <td>{displayName(u)}{u.id === profile.id && ' (you)'}</td>
+                <td>
+                  <span className="row">
+                    <Avatar url={u.photo_url} name={displayName(u)} size={36} />
+                    <span>{displayName(u)}{u.id === profile.id && ' (you)'}</span>
+                  </span>
+                </td>
                 <td className="muted">{u.username}</td>
                 <td>{u.role}</td>
                 <td><span className={`pill ${u.active ? 'green' : 'grey'}`}>{u.active ? 'On' : 'Off'}</span></td>
                 <td className="actions">
+                  <label className="btn small ghost filebtn">Photo
+                    <input type="file" accept="image/*" hidden onChange={(e) => { changePhoto(u, e.target.files[0]); e.target.value = ''; }} />
+                  </label>
                   <button className="btn small ghost" onClick={() => rename(u)}>Nickname</button>
                   <button className="btn small ghost" onClick={() => toggle(u)}>{u.active ? 'Turn off' : 'Turn on'}</button>
                   <button className="btn small ghost" onClick={() => resetPw(u)}>Set password</button>
@@ -246,6 +278,8 @@ export default function Admin() {
             {history.map((h) => <li key={h.id}>{h.name} — drawn {h.started_at ? new Date(h.started_at).toLocaleDateString() : '—'}</li>)}
           </ul>
         </section>
+      )}
+      </>
       )}
     </>
   );

@@ -104,6 +104,10 @@ create policy "profiles readable" on public.profiles for select to authenticated
 drop policy if exists "own profile update" on public.profiles;
 create policy "own profile update" on public.profiles for update to authenticated
   using (id = auth.uid()) with check (id = auth.uid());
+-- Admins may set anybody's photo (the grant below limits updates to photo_url).
+drop policy if exists "admin profile photo update" on public.profiles;
+create policy "admin profile photo update" on public.profiles for update to authenticated
+  using (public.is_admin()) with check (public.is_admin());
 -- Users may only change their photo (not role, username or on/off).
 revoke update on public.profiles from authenticated;
 grant update (photo_url) on public.profiles to authenticated;
@@ -620,3 +624,7 @@ create policy "photos update own" on storage.objects for update to authenticated
 drop policy if exists "photos delete own" on storage.objects;
 create policy "photos delete own" on storage.objects for delete to authenticated
   using (bucket_id = 'photos' and (storage.foldername(name))[1] = auth.uid()::text);
+-- Admins can also remove any photo (e.g. when replacing another user's picture).
+drop policy if exists "photos admin delete" on storage.objects;
+create policy "photos admin delete" on storage.objects for delete to authenticated
+  using (bucket_id = 'photos' and public.is_admin());
