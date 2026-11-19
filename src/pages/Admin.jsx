@@ -106,14 +106,58 @@ function EventPanel({ event, leavers, reload }) {
   );
 }
 
+function VoteProgress({ refreshKey }) {
+  const [rows, setRows] = useState(null);
+  const [error, setError] = useState('');
+
+  const load = async () => {
+    const [prog, profs] = await Promise.all([
+      supabase.rpc('dog_poll_progress'),
+      supabase.from('profiles').select('id, username, nickname, active'),
+    ]);
+    const failure = prog.error || profs.error;
+    if (failure) return setError(`${failure.message}. Run the latest supabase/schema.sql in the SQL Editor.`);
+    setError('');
+    const byId = Object.fromEntries(profs.data.map((p) => [p.id, p]));
+    setRows(prog.data.filter((r) => byId[r.user_id]).map((r) => ({ ...r, user: byId[r.user_id] })).sort((a, b) => byName(a.user, b.user)));
+  };
+  useEffect(() => { load(); }, [refreshKey]); // eslint-disable-line
+
+  if (error) return <p className="error">{error}</p>;
+  if (!rows) return <p className="muted">Loading progress…</p>;
+  const total = rows[0]?.total ?? 0;
+  const finished = rows.filter((r) => total > 0 && r.voted >= total).length;
+
+  return (
+    <div className="progress-box">
+      <div className="row spread">
+        <h4>Voting progress — {finished}/{rows.length} finished</h4>
+        <button className="btn small ghost" onClick={load}>↻ Refresh</button>
+      </div>
+      <ul className="choice-list">
+        {rows.map((r) => (
+          <li key={r.user_id}>
+            <span>{displayName(r.user)}{!r.user.active && <span className="muted"> (off)</span>}</span>
+            <span className={r.voted >= r.total && r.total > 0 ? 'ok' : 'muted'}>
+              voted {r.voted}/{r.total}{r.voted >= r.total && r.total > 0 ? ' ✔' : ''}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function GamesPanel() {
   const { settings, reloadSettings } = useAuth();
   const [msg, setMsg] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const run = async (name, args, ok) => {
     const { error } = await supabase.rpc(name, args);
     setMsg(error ? `Error: ${error.message}` : ok);
     reloadSettings();
+    setRefreshKey((k) => k + 1);
   };
 
   const visible = settings.games_visible;
@@ -140,7 +184,7 @@ function GamesPanel() {
       <div className="subcard">
         <h4>The Dog Poll — <span className={`pill ${revealed ? 'green' : 'amber'}`}>{revealed ? 'Results revealed' : 'Voting open'}</span></h4>
         <p className="muted">
-          Votes are private: nobody, including you, can read them. Revealing the results closes voting and shows the
+          Votes are private: nobody, including you, can see who picked whom (you only see how many dogs each person has voted on). Revealing the results closes voting and shows the
           <strong> Results</strong> section (the winning dog for each user; ties show every winner).
         </p>
         <div className="row wrap">
@@ -149,6 +193,7 @@ function GamesPanel() {
             : <button className="btn" onClick={() => confirm('Reveal the Dog Poll results? Voting will close.') && run('set_dog_poll_revealed', { flag: true }, 'Results revealed 🏆')}>Reveal results</button>}
           <button className="btn danger" onClick={wipe}>Delete all votes…</button>
         </div>
+        <VoteProgress refreshKey={refreshKey} />
         <DogManager />
       </div>
       {msg && <p className={msg.startsWith('Error') ? 'error' : 'ok'}>{msg}</p>}

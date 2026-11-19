@@ -577,11 +577,25 @@ begin
   update public.game_settings set dog_poll_revealed = false where id = 1;
 end $$;
 
+-- Admin-only progress: how many dogs each person has voted on. Shows counts only, never WHO was picked.
+create or replace function public.dog_poll_progress() returns table (user_id uuid, voted int, total int)
+language plpgsql stable security definer set search_path = public as $$
+declare n int;
+begin
+  if not public.is_admin() then raise exception 'Admins only'; end if;
+  select count(*) into n from public.dogs;
+  return query
+    select p.id, (select count(*)::int from public.dog_votes v where v.voter_id = p.id), n
+    from public.profiles p;
+end $$;
+
 revoke all on function public.cast_vote(uuid, uuid), public.dog_poll_results(),
-  public.set_games_visible(boolean), public.set_dog_poll_revealed(boolean), public.reset_dog_votes()
+  public.set_games_visible(boolean), public.set_dog_poll_revealed(boolean), public.reset_dog_votes(),
+  public.dog_poll_progress()
   from public, anon;
 grant execute on function public.cast_vote(uuid, uuid), public.dog_poll_results(),
-  public.set_games_visible(boolean), public.set_dog_poll_revealed(boolean), public.reset_dog_votes()
+  public.set_games_visible(boolean), public.set_dog_poll_revealed(boolean), public.reset_dog_votes(),
+  public.dog_poll_progress()
   to authenticated;
 
 -- ───────────── Keep-alive ─────────────
