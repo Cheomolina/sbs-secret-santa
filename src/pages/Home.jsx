@@ -25,7 +25,7 @@ function Summary({ event }) {
   return (
     <div className="summary">
       {items.map(([i, t]) => <span key={i}>{i} {t}</span>)}
-      <Link to="/event">All details →</Link>
+      <Link to="/">All event details →</Link>
     </div>
   );
 }

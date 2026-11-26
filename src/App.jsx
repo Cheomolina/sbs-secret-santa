@@ -24,8 +24,9 @@ export default function App() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/event" element={<EventDetails />} />
+        <Route path="/" element={<EventDetails />} />
+        <Route path="/draw" element={<Home />} />
+        <Route path="/event" element={<Navigate to="/" replace />} />
         <Route path="/participants" element={<Participants />} />
         <Route path="/participants/:id" element={<Participant />} />
         {showGames && <Route path="/games" element={<Games />} />}

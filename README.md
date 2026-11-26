@@ -46,8 +46,8 @@ npm run dev
 
 ## Using it
 1. Sign in as the admin → **Admin** → create a user for each colleague (give them their password).
-2. On the **Event** page set the draw date, exchange date, place and budget. Run **Run event test** (Admin) to check everything is ready.
-3. Users sign in, add a photo and wishlist items. On the date, the draw runs and **Home** shows each person their target.
+2. On the **Home** page (event details) set the draw date, exchange date, place and budget. Run **Run event test** (Admin) to check everything is ready.
+3. Users sign in, add a photo and wishlist items. On the date, the draw runs and **My draw** shows each person their target.
 
 Notes
 - Usernames map to internal emails `username@santa.local`. If Supabase ever rejects that domain, change it in `src/lib/config.js` and the `EMAIL_DOMAIN` secret of the function.

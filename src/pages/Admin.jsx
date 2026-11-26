@@ -42,14 +42,14 @@ function EventPanel({ event, leavers, reload }) {
 
   const next = () => {
     if (prompt(`This closes "${event.name}" (kept as history, used to avoid repeats) and opens next year's event. Everyone is turned back on. Type NEXT to confirm.`) !== 'NEXT') return;
-    run(async () => { await rpc('start_next_event'); setTest(null); }, "Next year's event is ready ✔ — set its details on the Event page.");
+    run(async () => { await rpc('start_next_event'); setTest(null); }, "Next year's event is ready ✔ — set its details on the Home page.");
   };
 
   return (
     <section className="card">
       <h3>{event.name} — <span className={`pill ${started ? 'green' : 'amber'}`}>{started ? 'Started' : 'Draft'}</span></h3>
       <p className="muted">
-        Draw date: {fmt(event.draw_date)} · <Link to="/event">edit event details</Link>. The draw runs automatically once the date passes (checked every 5 minutes).
+        Draw date: {fmt(event.draw_date)} · <Link to="/">edit event details</Link>. The draw runs automatically once the date passes (checked every 5 minutes).
       </p>
 
       {!started && (
@@ -125,25 +125,18 @@ function VoteProgress({ refreshKey }) {
 
   if (error) return <p className="error">{error}</p>;
   if (!rows) return <p className="muted">Loading progress…</p>;
-  const total = rows[0]?.total ?? 0;
-  const finished = rows.filter((r) => total > 0 && r.voted >= total).length;
+  const voters = rows.filter((r) => r.voted > 0).length;
+  const votes = rows.reduce((sum, r) => sum + r.voted, 0);
+  const possible = rows.reduce((sum, r) => sum + r.total, 0);
 
   return (
     <div className="progress-box">
       <div className="row spread">
-        <h4>Voting progress — {finished}/{rows.length} finished</h4>
+        <h4>Voting progress</h4>
         <button className="btn small ghost" onClick={load}>↻ Refresh</button>
       </div>
-      <ul className="choice-list">
-        {rows.map((r) => (
-          <li key={r.user_id}>
-            <span>{displayName(r.user)}{!r.user.active && <span className="muted"> (off)</span>}</span>
-            <span className={r.voted >= r.total && r.total > 0 ? 'ok' : 'muted'}>
-              voted {r.voted}/{r.total}{r.voted >= r.total && r.total > 0 ? ' ✔' : ''}
-            </span>
-          </li>
-        ))}
-      </ul>
+      <p className="progress-big"><strong>{voters}/{rows.length}</strong> participants have voted</p>
+      <p className="muted small">{votes}/{possible} votes cast in total</p>
     </div>
   );
 }

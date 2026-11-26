@@ -11,7 +11,7 @@ export default function Layout({ children }) {
         <span className="brand">🎅 Secret Santa</span>
         <nav>
           <NavLink to="/" end>Home</NavLink>
-          <NavLink to="/event">Event</NavLink>
+          <NavLink to="/draw">My draw</NavLink>
           <NavLink to="/participants">Participants</NavLink>
           {showGames && (
             <NavLink to="/games">Games{!settings.games_visible && <span className="lock" title="Only visible to you (admin)"> 🔒</span>}</NavLink>
